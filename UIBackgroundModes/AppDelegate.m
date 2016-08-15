@@ -17,6 +17,14 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    
+    //Backfround Fetch
+//    [application setMinimumBackgroundFetchInterval:UIApplicationBackgroundFetchIntervalMinimum];
+    
+    //每10秒唤醒一次
+    NSTimeInterval theTimeInterval = 10;
+    [application setMinimumBackgroundFetchInterval:theTimeInterval];
+    
     return YES;
 }
 
@@ -28,6 +36,14 @@
 - (void)applicationDidEnterBackground:(UIApplication *)application {
     // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
     // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+    
+    static UIBackgroundTaskIdentifier task;
+    task = [application beginBackgroundTaskWithExpirationHandler:^{
+        task = UIBackgroundTaskInvalid;
+    }];
+    // 执行后台操作
+    [application endBackgroundTask:task];
+    
 }
 
 - (void)applicationWillEnterForeground:(UIApplication *)application {
@@ -41,5 +57,51 @@
 - (void)applicationWillTerminate:(UIApplication *)application {
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 }
+
+
+#pragma mark - Background Fetch
+
+- (void)application:(UIApplication *)application performFetchWithCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler{
+    
+    NSLog(@"本地通知");
+    
+    UILocalNotification *notification = [[UILocalNotification alloc] init];
+    // 设置触发通知的时间
+    NSDate *fireDate = [NSDate date];
+    NSLog(@"fireDate=%@",fireDate);
+    
+    notification.fireDate = fireDate;
+    // 时区
+    notification.timeZone = [NSTimeZone defaultTimeZone];
+    // 设置重复的间隔
+    notification.repeatInterval = kCFCalendarUnitSecond;
+    
+    // 通知内容
+    notification.alertBody =  @"该起床了...";
+    notification.applicationIconBadgeNumber = 1;
+    // 通知被触发时播放的声音
+    notification.soundName = UILocalNotificationDefaultSoundName;
+    // 通知参数
+    NSDictionary *userDict = [NSDictionary dictionaryWithObject:@"开始学习iOS开发了" forKey:@"key"];
+    notification.userInfo = userDict;
+    
+    // ios8后，需要添加这个注册，才能得到授权
+    if ([[UIApplication sharedApplication] respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+        UIUserNotificationType type =  UIUserNotificationTypeAlert | UIUserNotificationTypeBadge | UIUserNotificationTypeSound;
+        UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:type
+                                                                                 categories:nil];
+        [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
+        // 通知重复提示的单位，可以是天、周、月
+        notification.repeatInterval = NSCalendarUnitDay;
+    } else {
+        // 通知重复提示的单位，可以是天、周、月
+        notification.repeatInterval = NSDayCalendarUnit;
+    }
+    
+    // 执行通知注册
+    [[UIApplication sharedApplication] scheduleLocalNotification:notification];
+    
+}
+
 
 @end
